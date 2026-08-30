@@ -43,7 +43,7 @@ java {
 
 val coreVersion = providers.gradleProperty("lightbatisCoreVersion").get()
 
-val generateCoreVersion by tasks.registering {
+val generateCoreVersion = tasks.register("generateCoreVersion") {
     description = "Write the lightbatis core version this plugin injects into consumer builds"
     val outputDir = layout.buildDirectory.dir("generated/sources/coreversion/java/main")
     outputs.dir(outputDir)

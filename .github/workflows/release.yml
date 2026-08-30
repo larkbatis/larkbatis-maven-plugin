@@ -111,6 +111,28 @@ jobs:
           esac
           echo "Releasing $version"
 
+      - name: Check the user-facing docs do not still advertise a snapshot
+        env:
+          VERSION: ${{ steps.target.outputs.version }}
+        # Every `-SNAPSHOT` in these files is a copy-pasteable coordinate, not
+        # prose about snapshots, so a blanket match is exact here. CHANGELOG.md
+        # and RELEASING.md discuss the mechanism and are deliberately excluded.
+        # This is the most visible way a release can be wrong: a README telling
+        # people to depend on a version Central has never seen.
+        run: |
+          set -euo pipefail
+          files=()
+          for f in README.md MIGRATION.md; do
+            [ -f "$f" ] && files+=("$f")
+          done
+          hits=$(grep -n -- '-SNAPSHOT' "${files[@]}" || true)
+          if [ -n "$hits" ]; then
+            echo "::error::user-facing docs still advertise a snapshot coordinate — set these to $VERSION"
+            printf '%s\n' "$hits"
+            exit 1
+          fi
+          echo "No snapshot coordinates in ${files[*]}"
+
       - name: Build and test
         run: ./gradlew build -Pversion=${{ steps.target.outputs.version }} -PlightbatisCoreVersion=${{ steps.target.outputs.core-version }} -PuseLocalCore=false
 
