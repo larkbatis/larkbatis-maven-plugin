@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Registers the lifecycle participant as a Plexus component so Maven discovers
+  it when the plugin is declared with <extensions>true</extensions>.
+  Hand-written (this repo builds with Gradle; no plexus-component-metadata run).
+-->
+<component-set>
+  <components>
+    <component>
+      <role>org.apache.maven.AbstractMavenLifecycleParticipant</role>
+      <role-hint>lightbatis</role-hint>
+      <implementation>io.github.lightbatis.maven.LightBatisLifecycleParticipant</implementation>
+    </component>
+  </components>
+</component-set>
