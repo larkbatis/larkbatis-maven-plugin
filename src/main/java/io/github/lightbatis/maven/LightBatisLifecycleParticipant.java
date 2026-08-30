@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Wires mapper XML into the LightBatis annotation processor (design §03),
+ * Wires mapper XML into the LightBatis annotation processor,
  * the Maven way. Unlike Gradle, Maven finalizes every mojo's configuration
  * before the first mojo of a project runs, so a plain mojo executing in an
  * early phase cannot add {@code -Alightbatis.mapperDir} to the {@code compile}

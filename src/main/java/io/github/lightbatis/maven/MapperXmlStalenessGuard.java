@@ -23,7 +23,7 @@ import javax.xml.stream.XMLStreamReader;
  * {@code compileJava} inputs: {@code maven-compiler-plugin} recompiles only
  * when a {@code .java} file is stale, so editing just a mapper XML would leave
  * the generated {@code $$Impl} silently outdated. The guard reads each mapper
- * XML's {@code namespace} (= mapper interface FQN, §03) and, when the file's
+ * XML's {@code namespace} (= mapper interface FQN) and, when the file's
  * content changed since the last build, bumps that interface source's
  * last-modified time — the next compile then reruns the processor, which
  * regenerates from the fresh XML. Content is never modified.

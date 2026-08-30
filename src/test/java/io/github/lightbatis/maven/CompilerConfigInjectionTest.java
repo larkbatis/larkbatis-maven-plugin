@@ -139,7 +139,8 @@ class CompilerConfigInjectionTest {
         Xpp3Dom path = configuration.getChild("annotationProcessorPaths").getChild(0);
         assertEquals("io.github.lightbatis", path.getChild("groupId").getValue());
         assertEquals("lightbatis-processor", path.getChild("artifactId").getValue());
-        assertEquals("0.1.0-SNAPSHOT", path.getChild("version").getValue());
+        assertEquals(CompilerConfigInjection.PROCESSOR_VERSION,
+                path.getChild("version").getValue());
         // No plugin version: Maven resolves it via pluginManagement/defaults.
         assertNull(compilerPlugin(build).getVersion());
     }

@@ -54,8 +54,13 @@ final class CompilerConfigInjection {
 
     static final String PROCESSOR_GROUP_ID = "io.github.lightbatis";
     static final String PROCESSOR_ARTIFACT_ID = "lightbatis-processor";
-    /** Kept in lockstep with the plugin's own version by the release process. */
-    static final String PROCESSOR_VERSION = "0.1.0-SNAPSHOT";
+    /**
+     * The core version this plugin hands to consumers. Generated from the
+     * {@code lightbatisCoreVersion} build property rather than typed here, so a
+     * released plugin cannot inject a SNAPSHOT coordinate into someone else's
+     * build — the failure that a literal invites and that nothing else catches.
+     */
+    static final String PROCESSOR_VERSION = CoreVersion.VALUE;
 
     /**
      * Main sources only — {@code testCompile} is deliberately excluded, which

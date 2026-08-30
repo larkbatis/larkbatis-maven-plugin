@@ -1,8 +1,8 @@
 # lightbatis-maven-plugin
 
 Maven plugin for LightBatis: wires mapper XML into the generator core
-(`lightbatis-processor`) at build time — same rationale as the Gradle plugin
-(design §03): the `Filer.getResource` spec does not guarantee access to files
+(`lightbatis-processor`) at build time — same rationale as the Gradle plugin:
+the `Filer.getResource` spec does not guarantee access to files
 under `src/main/resources`, so a build-tool plugin hands the processor a real
 directory path.
 
