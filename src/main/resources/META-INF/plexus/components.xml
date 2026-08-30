@@ -8,8 +8,8 @@
   <components>
     <component>
       <role>org.apache.maven.AbstractMavenLifecycleParticipant</role>
-      <role-hint>lightbatis</role-hint>
-      <implementation>io.github.lightbatis.maven.LightBatisLifecycleParticipant</implementation>
+      <role-hint>larkbatis</role-hint>
+      <implementation>io.github.larkbatis.maven.LarkBatisLifecycleParticipant</implementation>
     </component>
   </components>
 </component-set>

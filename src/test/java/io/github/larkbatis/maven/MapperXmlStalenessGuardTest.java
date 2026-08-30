@@ -1,4 +1,4 @@
-package io.github.lightbatis.maven;
+package io.github.larkbatis.maven;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,7 +45,7 @@ class MapperXmlStalenessGuardTest {
         mapperDir = Files.createDirectories(projectDir.resolve("src/main/resources"));
         sourceRoot = projectDir.resolve("src/main/java");
         outputDirectory = projectDir.resolve("target/classes");
-        stateFile = projectDir.resolve("target/lightbatis/mapper-xml.properties");
+        stateFile = projectDir.resolve("target/larkbatis/mapper-xml.properties");
         interfaceSource = write(sourceRoot.resolve("com/example/UserMapper.java"),
                 "package com.example; public interface UserMapper {}");
         interfaceClass = write(outputDirectory.resolve("com/example/UserMapper.class"),

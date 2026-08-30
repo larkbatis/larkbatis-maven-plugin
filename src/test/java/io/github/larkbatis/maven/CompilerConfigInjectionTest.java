@@ -1,4 +1,4 @@
-package io.github.lightbatis.maven;
+package io.github.larkbatis.maven;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -18,7 +18,7 @@ class CompilerConfigInjectionTest {
 
     private static final Path MAPPER_DIR = Path.of("/project/src/main/resources");
     private static final String EXPECTED_ARG =
-            "-Alightbatis.mapperDir=" + MAPPER_DIR;
+            "-Alarkbatis.mapperDir=" + MAPPER_DIR;
 
     /**
      * The production call with the two arguments every test shares pinned:
@@ -51,7 +51,7 @@ class CompilerConfigInjectionTest {
         Xpp3Dom configuration = executionConfiguration(build, "default-compile");
         assertEquals(EXPECTED_ARG,
                 configuration.getChild("compilerArgs").getChild(0).getValue());
-        assertEquals("lightbatis-processor",
+        assertEquals("larkbatis-processor",
                 configuration.getChild("annotationProcessorPaths").getChild(0)
                         .getChild("artifactId").getValue());
     }
@@ -132,7 +132,7 @@ class CompilerConfigInjectionTest {
     }
 
     /**
-     * The build's opinion wins even when it is the one that breaks LightBatis —
+     * The build's opinion wins even when it is the one that breaks LarkBatis —
      * overriding it would be this plugin deciding it knows better about someone
      * else's bytecode. It is reported instead, and the participant warns.
      */
@@ -222,8 +222,8 @@ class CompilerConfigInjectionTest {
         assertEquals(EXPECTED_ARG,
                 configuration.getChild("compilerArgs").getChild(0).getValue());
         Xpp3Dom path = configuration.getChild("annotationProcessorPaths").getChild(0);
-        assertEquals("io.github.lightbatis", path.getChild("groupId").getValue());
-        assertEquals("lightbatis-processor", path.getChild("artifactId").getValue());
+        assertEquals("io.github.larkbatis", path.getChild("groupId").getValue());
+        assertEquals("larkbatis-processor", path.getChild("artifactId").getValue());
         assertEquals(CompilerConfigInjection.PROCESSOR_VERSION,
                 path.getChild("version").getValue());
         // No plugin version: Maven resolves it via pluginManagement/defaults.
@@ -234,7 +234,7 @@ class CompilerConfigInjectionTest {
     void manualMapperDirArgWins() {
         Build build = buildWithLifecycleExecutions(
                 "<configuration><compilerArgs>"
-                + "<arg>-Alightbatis.mapperDir=/custom/mappers</arg>"
+                + "<arg>-Alarkbatis.mapperDir=/custom/mappers</arg>"
                 + "</compilerArgs></configuration>");
 
         CompilerConfigInjection.Result result =
@@ -243,7 +243,7 @@ class CompilerConfigInjectionTest {
         assertTrue(result.manualArgFound());
         Xpp3Dom args = executionConfiguration(build, "default-compile").getChild("compilerArgs");
         assertEquals(1, args.getChildCount());
-        assertEquals("-Alightbatis.mapperDir=/custom/mappers", args.getChild(0).getValue());
+        assertEquals("-Alarkbatis.mapperDir=/custom/mappers", args.getChild(0).getValue());
     }
 
     @Test
@@ -274,7 +274,7 @@ class CompilerConfigInjectionTest {
         Xpp3Dom paths = executionConfiguration(build, "default-compile")
                 .getChild("annotationProcessorPaths");
         assertEquals(2, paths.getChildCount());
-        assertEquals("lightbatis-processor",
+        assertEquals("larkbatis-processor",
                 paths.getChild(1).getChild("artifactId").getValue());
     }
 
@@ -282,8 +282,8 @@ class CompilerConfigInjectionTest {
     void existingProcessorPathNotDuplicated() {
         Build build = buildWithLifecycleExecutions(
                 "<configuration><annotationProcessorPaths><path>"
-                + "<groupId>io.github.lightbatis</groupId>"
-                + "<artifactId>lightbatis-processor</artifactId>"
+                + "<groupId>io.github.larkbatis</groupId>"
+                + "<artifactId>larkbatis-processor</artifactId>"
                 + "<version>0.2.0</version>"
                 + "</path></annotationProcessorPaths></configuration>");
 

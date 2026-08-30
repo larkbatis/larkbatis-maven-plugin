@@ -1,4 +1,4 @@
-package io.github.lightbatis.maven;
+package io.github.larkbatis.maven;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -23,7 +23,7 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
  *     with a {@code <mapper>} root element are picked up, so the
  *     {@code src/main/resources} default is safe next to other XML. Relative
  *     paths resolve against the project basedir.
- * @param addProcessorPath whether {@code lightbatis-processor} is appended to
+ * @param addProcessorPath whether {@code larkbatis-processor} is appended to
  *     {@code maven-compiler-plugin}'s {@code <annotationProcessorPaths>}
  *     automatically. Switch off to manage the processor path yourself.
  * @param addParameters whether {@code <parameters>true</parameters>} is set on

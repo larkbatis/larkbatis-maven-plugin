@@ -1,4 +1,4 @@
-package io.github.lightbatis.maven;
+package io.github.larkbatis.maven;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -15,13 +15,13 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-class LightBatisLifecycleParticipantTest {
+class LarkBatisLifecycleParticipantTest {
 
     @TempDir
     Path projectDir;
 
-    private final LightBatisLifecycleParticipant participant =
-            new LightBatisLifecycleParticipant();
+    private final LarkBatisLifecycleParticipant participant =
+            new LarkBatisLifecycleParticipant();
 
     @Test
     void configuresDeclaringProject() {
@@ -32,9 +32,9 @@ class LightBatisLifecycleParticipantTest {
 
         Path expectedMapperDir = projectDir.resolve("mappers");
         assertEquals(expectedMapperDir.toString(),
-                project.getProperties().getProperty("lightbatis.mapperDir"));
+                project.getProperties().getProperty("larkbatis.mapperDir"));
         Xpp3Dom args = compileExecutionConfiguration(project).getChild("compilerArgs");
-        assertEquals("-Alightbatis.mapperDir=" + expectedMapperDir,
+        assertEquals("-Alarkbatis.mapperDir=" + expectedMapperDir,
                 args.getChild(0).getValue());
     }
 
@@ -46,7 +46,7 @@ class LightBatisLifecycleParticipantTest {
 
         List<PluginExecution> executions = declaration(project).getExecutions();
         assertEquals(1, executions.size());
-        assertEquals("lightbatis-refresh", executions.get(0).getId());
+        assertEquals("larkbatis-refresh", executions.get(0).getId());
         assertEquals(List.of("refresh"), executions.get(0).getGoals());
         // No phase of its own: RefreshMojo's defaultPhase (generate-sources) governs.
         assertNull(executions.get(0).getPhase());
@@ -87,7 +87,7 @@ class LightBatisLifecycleParticipantTest {
 
         participant.configure(project);
 
-        assertNull(project.getProperties().getProperty("lightbatis.mapperDir"));
+        assertNull(project.getProperties().getProperty("larkbatis.mapperDir"));
         assertTrue(project.getBuild().getPlugins().isEmpty());
     }
 
@@ -104,8 +104,8 @@ class LightBatisLifecycleParticipantTest {
         model.setBuild(build);
         if (declarePlugin) {
             Plugin declaration = new Plugin();
-            declaration.setGroupId("io.github.lightbatis");
-            declaration.setArtifactId("lightbatis-maven-plugin");
+            declaration.setGroupId("io.github.larkbatis");
+            declaration.setArtifactId("larkbatis-maven-plugin");
             declaration.setExtensions(true);
             if (configurationXml != null) {
                 declaration.setConfiguration(TestXml.dom(configurationXml));
@@ -127,7 +127,7 @@ class LightBatisLifecycleParticipantTest {
     }
 
     private static Plugin declaration(MavenProject project) {
-        return findPlugin(project, "lightbatis-maven-plugin");
+        return findPlugin(project, "larkbatis-maven-plugin");
     }
 
     private static Xpp3Dom compileExecutionConfiguration(MavenProject project) {

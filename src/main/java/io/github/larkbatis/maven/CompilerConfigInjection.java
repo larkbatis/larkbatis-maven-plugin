@@ -1,4 +1,4 @@
-package io.github.lightbatis.maven;
+package io.github.larkbatis.maven;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -12,13 +12,13 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 /**
  * Mutates {@code maven-compiler-plugin}'s model configuration before the
- * execution plan is calculated (see {@link LightBatisLifecycleParticipant}
+ * execution plan is calculated (see {@link LarkBatisLifecycleParticipant}
  * for why this must happen at extension time):
  *
  * <ul>
- *   <li>appends {@code -Alightbatis.mapperDir=<dir>} to {@code <compilerArgs>}
+ *   <li>appends {@code -Alarkbatis.mapperDir=<dir>} to {@code <compilerArgs>}
  *       — skipped where that option is already passed manually,</li>
- *   <li>appends {@code lightbatis-processor} to
+ *   <li>appends {@code larkbatis-processor} to
  *       {@code <annotationProcessorPaths>}, creating the element when absent,</li>
  *   <li>sets {@code <parameters>true</parameters>} where the build has no
  *       opinion of its own — parameter names have to reach the class files or
@@ -54,14 +54,14 @@ final class CompilerConfigInjection {
 
     static final String COMPILER_GROUP_ID = "org.apache.maven.plugins";
     static final String COMPILER_ARTIFACT_ID = "maven-compiler-plugin";
-    static final String MAPPER_DIR_ARG_PREFIX = "-Alightbatis.mapperDir=";
+    static final String MAPPER_DIR_ARG_PREFIX = "-Alarkbatis.mapperDir=";
     static final String PARAMETERS_FLAG = "-parameters";
 
-    static final String PROCESSOR_GROUP_ID = "io.github.lightbatis";
-    static final String PROCESSOR_ARTIFACT_ID = "lightbatis-processor";
+    static final String PROCESSOR_GROUP_ID = "io.github.larkbatis";
+    static final String PROCESSOR_ARTIFACT_ID = "larkbatis-processor";
     /**
      * The core version this plugin hands to consumers. Generated from the
-     * {@code lightbatisCoreVersion} build property rather than typed here, so a
+     * {@code larkbatisCoreVersion} build property rather than typed here, so a
      * released plugin cannot inject a SNAPSHOT coordinate into someone else's
      * build — the failure that a literal invites and that nothing else catches.
      */
@@ -74,7 +74,7 @@ final class CompilerConfigInjection {
      * the processor over test sources with the <em>main</em> mapper directory
      * would make it report every main mapper XML as unmatched — a mandatory
      * warning per file, a failed build under {@code -Werror} — and emit a
-     * second {@code LightBatisMappers} registry that shadows the real one for
+     * second {@code LarkBatisMappers} registry that shadows the real one for
      * test code. Test-scoped mappers need their own directory and registry
      * package before this can widen.
      */

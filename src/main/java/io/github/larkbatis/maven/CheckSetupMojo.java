@@ -1,4 +1,4 @@
-package io.github.lightbatis.maven;
+package io.github.larkbatis.maven;
 
 import java.io.File;
 import org.apache.maven.plugin.AbstractMojo;
@@ -9,12 +9,12 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
 /**
- * {@code lightbatis:check} — verifies the build extension actually ran, and
+ * {@code larkbatis:check} — verifies the build extension actually ran, and
  * reports what it resolved. The one silent failure mode of this plugin is a
  * declaration without {@code <extensions>true</extensions>}: the lifecycle
  * participant is never discovered, nothing is injected, and mappers just stop
  * being generated. This mojo turns that into a diagnosable error by checking
- * for the {@code lightbatis.mapperDir} property the participant sets.
+ * for the {@code larkbatis.mapperDir} property the participant sets.
  */
 @Mojo(name = "check", defaultPhase = LifecyclePhase.VALIDATE, threadSafe = true)
 public final class CheckSetupMojo extends AbstractMojo {
@@ -44,15 +44,15 @@ public final class CheckSetupMojo extends AbstractMojo {
     @Override
     public void execute() throws MojoFailureException {
         String resolved = project.getProperties()
-                .getProperty(LightBatisLifecycleParticipant.MAPPER_DIR_PROPERTY);
+                .getProperty(LarkBatisLifecycleParticipant.MAPPER_DIR_PROPERTY);
         if (resolved == null) {
             throw new MojoFailureException(
-                    "LightBatis is not wired into this build: the plugin's lifecycle "
+                    "LarkBatis is not wired into this build: the plugin's lifecycle "
                     + "extension did not run. Add <extensions>true</extensions> to the "
-                    + "lightbatis-maven-plugin declaration in <build><plugins>.");
+                    + "larkbatis-maven-plugin declaration in <build><plugins>.");
         }
-        getLog().info("LightBatis mapper directory: " + resolved);
-        getLog().info("LightBatis processor path added automatically: " + addProcessorPath);
-        getLog().info("LightBatis -parameters set automatically: " + addParameters);
+        getLog().info("LarkBatis mapper directory: " + resolved);
+        getLog().info("LarkBatis processor path added automatically: " + addProcessorPath);
+        getLog().info("LarkBatis -parameters set automatically: " + addParameters);
     }
 }

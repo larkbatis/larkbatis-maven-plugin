@@ -11,7 +11,7 @@
 # Usage:
 #   .github/scripts/publish-to-central.sh \
 #       --bundle-dir build/central-bundle \
-#       --name "lightbatis 0.1.0" \
+#       --name "larkbatis 0.1.0" \
 #       [--publishing-type USER_MANAGED|AUTOMATIC] \
 #       [--timeout 1800] \
 #       [--dry-run]

@@ -1,7 +1,7 @@
-# lightbatis-maven-plugin
+# larkbatis-maven-plugin
 
-Maven plugin for LightBatis: wires mapper XML into the generator core
-(`lightbatis-processor`) at build time — same rationale as the Gradle plugin:
+Maven plugin for LarkBatis: wires mapper XML into the generator core
+(`larkbatis-processor`) at build time — same rationale as the Gradle plugin:
 the `Filer.getResource` spec does not guarantee access to files
 under `src/main/resources`, so a build-tool plugin hands the processor a real
 directory path.
@@ -12,8 +12,8 @@ directory path.
 <build>
     <plugins>
         <plugin>
-            <groupId>io.github.lightbatis</groupId>
-            <artifactId>lightbatis-maven-plugin</artifactId>
+            <groupId>io.github.larkbatis</groupId>
+            <artifactId>larkbatis-maven-plugin</artifactId>
             <version>0.1.0-SNAPSHOT</version>
             <extensions>true</extensions> <!-- required, see below -->
         </plugin>
@@ -22,16 +22,16 @@ directory path.
 
 <dependencies>
     <dependency>
-        <groupId>io.github.lightbatis</groupId>
-        <artifactId>lightbatis-runtime</artifactId>
+        <groupId>io.github.larkbatis</groupId>
+        <artifactId>larkbatis-runtime</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </dependency>
     <dependency>
-        <groupId>io.github.lightbatis</groupId>
-        <artifactId>lightbatis-annotations</artifactId>
+        <groupId>io.github.larkbatis</groupId>
+        <artifactId>larkbatis-annotations</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </dependency>
-    <!-- lightbatis-processor lands on annotationProcessorPaths automatically -->
+    <!-- larkbatis-processor lands on annotationProcessorPaths automatically -->
 </dependencies>
 ```
 
@@ -43,22 +43,22 @@ runs, so a mojo in an early phase cannot add compiler arguments to the
 (`AbstractMavenLifecycleParticipant`), which runs before execution plans are
 calculated and, for each project declaring the plugin:
 
-- injects `-Alightbatis.mapperDir=<dir>` into `maven-compiler-plugin`'s
+- injects `-Alarkbatis.mapperDir=<dir>` into `maven-compiler-plugin`'s
   `<compilerArgs>` (default dir: `src/main/resources`; only files with a
   `<mapper>` root element are read, so other XML in the same tree is ignored;
   skipped where that option is already passed manually),
-- appends `io.github.lightbatis:lightbatis-processor` to
+- appends `io.github.larkbatis:larkbatis-processor` to
   `<annotationProcessorPaths>`, creating the element when absent,
 - sets `<parameters>true</parameters>` where the build has no opinion of its
   own (see below),
-- binds `lightbatis:refresh` at `generate-sources`. That goal touches a mapper
+- binds `larkbatis:refresh` at `generate-sources`. That goal touches a mapper
   interface source whose mapper XML content changed since the last build, so
   an XML-only edit still regenerates code — `maven-compiler-plugin` recompiles
   on stale `.java` files only. Change detection is by content hash (recorded
-  in `target/lightbatis/mapper-xml.properties`), not timestamps, so neither a
+  in `target/larkbatis/mapper-xml.properties`), not timestamps, so neither a
   future-dated file nor a coarse filesystem clock can mislead it. The goal is
   best-effort: IO problems become warnings, never a failed build,
-- sets the `lightbatis.mapperDir` project property.
+- sets the `larkbatis.mapperDir` project property.
 
 Both injections target **every `compile`-bound execution** of the compiler
 plugin, not just its plugin-level `<configuration>`. Maven copies plugin-level
@@ -69,7 +69,7 @@ uses, so a plugin-level edit made at extension time would never reach
 `mvn compiler:compile` invocations.
 
 Without `<extensions>true</extensions>` none of this runs — silently. Run
-`mvn lightbatis:check` (or bind the `check` goal) to diagnose that case.
+`mvn larkbatis:check` (or bind the `check` goal) to diagnose that case.
 
 Configuration (all optional):
 
@@ -100,7 +100,7 @@ and **warned about**, because it is precisely the configuration under which
 `#{name}` works until it does not:
 
 ```text
-[WARNING] LightBatis (my-service): maven-compiler-plugin has
+[WARNING] LarkBatis (my-service): maven-compiler-plugin has
 <parameters>false</parameters>, and that has been left alone. ...
 ```
 
@@ -115,16 +115,16 @@ explicit paths only. Add your other processors (e.g. Lombok) to it, or set
 `<addProcessorPath>false</addProcessorPath>` and manage the paths yourself.
 
 **`addProcessorPath=false` on JDK 23+.** javac no longer discovers processors
-from the compile classpath, and the `-Alightbatis.mapperDir` option does not
+from the compile classpath, and the `-Alarkbatis.mapperDir` option does not
 count as asking for annotation processing either. If you opt out and put
-`lightbatis-processor` on the classpath instead, add it to
+`larkbatis-processor` on the classpath instead, add it to
 `<annotationProcessorPaths>` or set `<proc>full</proc>` yourself — otherwise
 you get no generated mappers and no error. (The plugin does not set `<proc>`:
 `<annotationProcessorPaths>` already passes `-processorpath`, which keeps
 processing enabled, and `-proc:full` is an invalid flag below JDK 17.0.9.)
 
 **Do not set `<useIncrementalCompilation>false</useIncrementalCompilation>`.**
-The processor is `aggregating`: it writes one `LightBatisMappers` registry
+The processor is `aggregating`: it writes one `LarkBatisMappers` registry
 listing every mapper in the compilation. maven-compiler-plugin's default
 behavior recompiles all sources once any of them is stale, which is what makes
 that whole. Compiling only the stale ones would regenerate the registry from a
@@ -156,8 +156,8 @@ participant is registered via a hand-written
 `META-INF/plexus/components.xml`.
 
 Functional tests against a real `mvn` invocation are deferred until the
-LightBatis artifacts are publishable to a local repository (same status as the
+LarkBatis artifacts are publishable to a local repository (same status as the
 Gradle plugin's TestKit tests). Until then the unit tests pin the model
 mutations against the shape Maven 3.9.x actually presents at extension time.
 
-Local development: `settings.gradle.kts` already has `includeBuild("../lightbatis")`.
+Local development: `settings.gradle.kts` already has `includeBuild("../larkbatis")`.

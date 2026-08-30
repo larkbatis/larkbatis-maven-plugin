@@ -1,4 +1,4 @@
-package io.github.lightbatis.maven;
+package io.github.larkbatis.maven;
 
 import java.io.StringReader;
 import org.codehaus.plexus.util.xml.Xpp3Dom;

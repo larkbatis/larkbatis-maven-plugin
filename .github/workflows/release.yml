@@ -28,7 +28,7 @@ on:
         type: choice
         options: [USER_MANAGED, AUTOMATIC]
       core-version:
-        description: "Released lightbatis core version to build against (default: the value in gradle.properties)"
+        description: "Released larkbatis core version to build against (default: the value in gradle.properties)"
         required: false
       dry-run:
         description: "Build and validate the bundle, upload nothing, create no release"
@@ -47,7 +47,7 @@ concurrency:
 
 jobs:
   release:
-    name: Publish lightbatis-maven-plugin
+    name: Publish larkbatis-maven-plugin
     runs-on: ubuntu-latest
     # Add required reviewers to this environment to gate releases on approval.
     environment: maven-central
@@ -93,15 +93,15 @@ jobs:
           # that injects a SNAPSHOT coordinate, or a starter that depends on
           # one, fails in someone else's build days later — with nothing here
           # to have caught it.
-          core_version="${INPUT_CORE_VERSION:-$(sed -n 's/^lightbatisCoreVersion=//p' gradle.properties)}"
+          core_version="${INPUT_CORE_VERSION:-$(sed -n 's/^larkbatisCoreVersion=//p' gradle.properties)}"
           case "$core_version" in
             ""|*-SNAPSHOT)
-              echo "::error::lightbatisCoreVersion is '$core_version'. Set it to a released core version in gradle.properties, or pass core-version to this workflow."
+              echo "::error::larkbatisCoreVersion is '$core_version'. Set it to a released core version in gradle.properties, or pass core-version to this workflow."
               exit 1
               ;;
           esac
           echo "core-version=$core_version" >> "$GITHUB_OUTPUT"
-          echo "Built against lightbatis core $core_version"
+          echo "Built against larkbatis core $core_version"
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
           # A pre-release version (0.2.0-rc1) is marked as one on GitHub.
@@ -134,13 +134,13 @@ jobs:
           echo "No snapshot coordinates in ${files[*]}"
 
       - name: Build and test
-        run: ./gradlew build -Pversion=${{ steps.target.outputs.version }} -PlightbatisCoreVersion=${{ steps.target.outputs.core-version }} -PuseLocalCore=false
+        run: ./gradlew build -Pversion=${{ steps.target.outputs.version }} -PlarkbatisCoreVersion=${{ steps.target.outputs.core-version }} -PuseLocalCore=false
 
       - name: Publish the signed bundle into build/central-bundle
         env:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
-        run: ./gradlew publishAllPublicationsToCentralBundleRepository -Pversion=${{ steps.target.outputs.version }} -PlightbatisCoreVersion=${{ steps.target.outputs.core-version }} -PuseLocalCore=false
+        run: ./gradlew publishAllPublicationsToCentralBundleRepository -Pversion=${{ steps.target.outputs.version }} -PlarkbatisCoreVersion=${{ steps.target.outputs.core-version }} -PuseLocalCore=false
 
       - name: Upload to the Central Portal
         env:
@@ -159,7 +159,7 @@ jobs:
           fi
           .github/scripts/publish-to-central.sh \
             --bundle-dir build/central-bundle \
-            --name "lightbatis-maven-plugin $VERSION" \
+            --name "larkbatis-maven-plugin $VERSION" \
             --publishing-type "$PUBLISHING_TYPE" \
             "${args[@]}"
 
@@ -201,7 +201,7 @@ jobs:
           # --target pins the release to this commit, which is what makes the
           # manual (untagged) path create the tag in the right place.
           gh release create "v$VERSION" \
-            --title "lightbatis-maven-plugin $VERSION" \
+            --title "larkbatis-maven-plugin $VERSION" \
             --notes-file "$RUNNER_TEMP/notes.md" \
             --target "$GITHUB_SHA" \
             "${args[@]}"

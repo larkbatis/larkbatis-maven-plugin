@@ -17,9 +17,9 @@ plugins {
     id("de.benediktritter.maven-plugin-development") version "0.4.3"
 }
 
-group = "io.github.lightbatis"
+group = "io.github.larkbatis"
 version = providers.gradleProperty("version").get()
-description = "Maven plugin for LightBatis: wires mapper XML into the annotation processor"
+description = "Maven plugin for LarkBatis: wires mapper XML into the annotation processor"
 
 repositories {
     mavenCentral()
@@ -38,26 +38,26 @@ java {
 // It used to be a literal in CompilerConfigInjection.java with a comment
 // promising the release process kept it in step. Generating it is what makes
 // that promise true: a released plugin that injects
-// `lightbatis-processor:0.1.0-SNAPSHOT` fails in the *consumer's* build, long
+// `larkbatis-processor:0.1.0-SNAPSHOT` fails in the *consumer's* build, long
 // after ours went green.
 
-val coreVersion = providers.gradleProperty("lightbatisCoreVersion").get()
+val coreVersion = providers.gradleProperty("larkbatisCoreVersion").get()
 
 val generateCoreVersion = tasks.register("generateCoreVersion") {
-    description = "Write the lightbatis core version this plugin injects into consumer builds"
+    description = "Write the larkbatis core version this plugin injects into consumer builds"
     val outputDir = layout.buildDirectory.dir("generated/sources/coreversion/java/main")
     outputs.dir(outputDir)
     // Captured as plain data so the task action holds no project reference
     // (Gradle configuration cache).
     val version = coreVersion
     doLast {
-        val dir = outputDir.get().asFile.resolve("io/github/lightbatis/maven")
+        val dir = outputDir.get().asFile.resolve("io/github/larkbatis/maven")
         dir.mkdirs()
         dir.resolve("CoreVersion.java").writeText(
             """
-            package io.github.lightbatis.maven;
+            package io.github.larkbatis.maven;
 
-            /** Generated from the lightbatisCoreVersion build property — do not edit. */
+            /** Generated from the larkbatisCoreVersion build property — do not edit. */
             final class CoreVersion {
 
                 static final String VALUE = "$version";
@@ -110,7 +110,7 @@ publishing {
                 packaging = "maven-plugin"
                 name = project.name
                 description = provider { project.description }
-                url = "https://github.com/lightbatis/lightbatis-maven-plugin"
+                url = "https://github.com/larkbatis/larkbatis-maven-plugin"
                 inceptionYear = "2026"
                 licenses {
                     license {
@@ -121,19 +121,19 @@ publishing {
                 }
                 developers {
                     developer {
-                        id = "lightbatis"
-                        name = "LightBatis contributors"
-                        url = "https://github.com/lightbatis"
+                        id = "larkbatis"
+                        name = "LarkBatis contributors"
+                        url = "https://github.com/larkbatis"
                     }
                 }
                 scm {
-                    connection = "scm:git:https://github.com/lightbatis/lightbatis-maven-plugin.git"
-                    developerConnection = "scm:git:ssh://git@github.com/lightbatis/lightbatis-maven-plugin.git"
-                    url = "https://github.com/lightbatis/lightbatis-maven-plugin"
+                    connection = "scm:git:https://github.com/larkbatis/larkbatis-maven-plugin.git"
+                    developerConnection = "scm:git:ssh://git@github.com/larkbatis/larkbatis-maven-plugin.git"
+                    url = "https://github.com/larkbatis/larkbatis-maven-plugin"
                 }
                 issueManagement {
                     system = "GitHub Issues"
-                    url = "https://github.com/lightbatis/lightbatis-maven-plugin/issues"
+                    url = "https://github.com/larkbatis/larkbatis-maven-plugin/issues"
                 }
             }
         }

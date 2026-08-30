@@ -1,4 +1,4 @@
-package io.github.lightbatis.maven;
+package io.github.larkbatis.maven;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -197,7 +197,7 @@ final class MapperXmlStalenessGuard {
         try {
             Files.createDirectories(stateFile.getParent());
             try (var out = Files.newOutputStream(stateFile)) {
-                state.store(out, "LightBatis: mapper XML content hashes, for change detection");
+                state.store(out, "LarkBatis: mapper XML content hashes, for change detection");
             }
         } catch (IOException e) {
             warnings.add("could not write " + stateFile + " (" + e + ") — mapper interfaces"
