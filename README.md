@@ -49,6 +49,8 @@ calculated and, for each project declaring the plugin:
   skipped where that option is already passed manually),
 - appends `io.github.lightbatis:lightbatis-processor` to
   `<annotationProcessorPaths>`, creating the element when absent,
+- sets `<parameters>true</parameters>` where the build has no opinion of its
+  own (see below),
 - binds `lightbatis:refresh` at `generate-sources`. That goal touches a mapper
   interface source whose mapper XML content changed since the last build, so
   an XML-only edit still regenerates code — `maven-compiler-plugin` recompiles
@@ -75,11 +77,35 @@ Configuration (all optional):
 <configuration>
     <mapperDir>src/main/mappers</mapperDir>      <!-- default: src/main/resources -->
     <addProcessorPath>false</addProcessorPath>   <!-- default: true -->
+    <addParameters>false</addParameters>         <!-- default: true -->
 </configuration>
 ```
 
 All code generation stays inside javac; the plugin generates nothing itself
 and adds nothing to the application's runtime classpath.
+
+### Why `<parameters>true</parameters>`
+
+Parameter names have to reach the class files. An incremental build re-runs an
+aggregating annotation processor over *unchanged* mappers from their **class
+files**, and a parameter name survives there only when it was compiled with
+`-parameters`. Without it a clean build resolves `#{name}` and the next
+incremental build sees `arg0` — the same source, two outcomes, decided by
+whether the file happened to be touched.
+
+The build's own opinion always wins. An explicit `<parameters>` — `true` or
+`false` — is left exactly as written, as is a manual
+`<compilerArgs><arg>-parameters</arg></compilerArgs>`. A `false` is honoured
+and **warned about**, because it is precisely the configuration under which
+`#{name}` works until it does not:
+
+```text
+[WARNING] LightBatis (my-service): maven-compiler-plugin has
+<parameters>false</parameters>, and that has been left alone. ...
+```
+
+A build that genuinely cannot carry the flag sets `<addParameters>false</addParameters>`
+and puts `@Param` on every mapper parameter, which needs no parameter names.
 
 ### Three things worth knowing
 

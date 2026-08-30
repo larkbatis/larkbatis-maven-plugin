@@ -12,6 +12,7 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
  * <configuration>
  *     <mapperDir>src/main/mappers</mapperDir>      <!-- default: src/main/resources -->
  *     <addProcessorPath>false</addProcessorPath>   <!-- default: true -->
+ *     <addParameters>false</addParameters>         <!-- default: true -->
  * </configuration>
  * }</pre>
  *
@@ -25,8 +26,14 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
  * @param addProcessorPath whether {@code lightbatis-processor} is appended to
  *     {@code maven-compiler-plugin}'s {@code <annotationProcessorPaths>}
  *     automatically. Switch off to manage the processor path yourself.
+ * @param addParameters whether {@code <parameters>true</parameters>} is set on
+ *     {@code maven-compiler-plugin} when the build has no opinion of its own.
+ *     Not a convenience: without parameter names in the class files, an
+ *     incremental build that re-runs the processor over unchanged mappers sees
+ *     {@code arg0} and every {@code #{name}} stops resolving. Switch off only
+ *     with {@code @Param} on every mapper parameter
  */
-record PluginSettings(Path mapperDir, boolean addProcessorPath) {
+record PluginSettings(Path mapperDir, boolean addProcessorPath, boolean addParameters) {
 
     static final String DEFAULT_MAPPER_DIR = "src/main/resources";
 
@@ -34,6 +41,7 @@ record PluginSettings(Path mapperDir, boolean addProcessorPath) {
         Xpp3Dom configuration = (Xpp3Dom) declaration.getConfiguration();
         String mapperDirValue = childValue(configuration, "mapperDir");
         String addProcessorPathValue = childValue(configuration, "addProcessorPath");
+        String addParametersValue = childValue(configuration, "addParameters");
 
         Path mapperDir = Path.of(
                 mapperDirValue == null || mapperDirValue.isBlank()
@@ -44,7 +52,9 @@ record PluginSettings(Path mapperDir, boolean addProcessorPath) {
         }
         boolean addProcessorPath = addProcessorPathValue == null
                 || Boolean.parseBoolean(addProcessorPathValue.trim());
-        return new PluginSettings(mapperDir.normalize(), addProcessorPath);
+        boolean addParameters = addParametersValue == null
+                || Boolean.parseBoolean(addParametersValue.trim());
+        return new PluginSettings(mapperDir.normalize(), addProcessorPath, addParameters);
     }
 
     private static String childValue(Xpp3Dom configuration, String name) {

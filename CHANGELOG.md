@@ -10,6 +10,25 @@ section here does not get released.
 
 ## [Unreleased]
 
+### Added
+
+- **`<parameters>true</parameters>` is set on `maven-compiler-plugin`**,
+  controlled by `<addParameters>` (default true). This was the one wiring step
+  the first real migration still had to do by hand, and it is not a
+  convenience: an incremental build re-runs an aggregating processor over
+  *unchanged* mappers from their class files, where a parameter name survives
+  only if that flag was on. Without it a clean build resolves `#{name}` and the
+  next incremental build fails on `arg0`.
+
+  The build's own opinion wins in every direction. An explicit `<parameters>`,
+  or a manual `<compilerArgs><arg>-parameters</arg></compilerArgs>`, is left
+  exactly as written — including `<parameters>false</parameters>`, which is
+  honoured and then warned about, because it is the configuration under which
+  `#{name}` resolves on a clean build and fails on the next incremental one.
+  Written through the compiler plugin's own `<parameters>` element rather than
+  as a `-parameters` arg, so it shows up where a reader of
+  `mvn help:effective-pom` expects to find it.
+
 ## [0.1.0] - 2026-08-30
 
 First public release.

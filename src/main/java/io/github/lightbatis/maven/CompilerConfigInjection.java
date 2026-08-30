@@ -19,7 +19,11 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
  *   <li>appends {@code -Alightbatis.mapperDir=<dir>} to {@code <compilerArgs>}
  *       — skipped where that option is already passed manually,</li>
  *   <li>appends {@code lightbatis-processor} to
- *       {@code <annotationProcessorPaths>}, creating the element when absent.</li>
+ *       {@code <annotationProcessorPaths>}, creating the element when absent,</li>
+ *   <li>sets {@code <parameters>true</parameters>} where the build has no
+ *       opinion of its own — parameter names have to reach the class files or
+ *       an incremental build that re-runs the processor over unchanged mappers
+ *       reads {@code arg0} and stops resolving {@code #{name}}.</li>
  * </ul>
  *
  * <p><b>Where the configuration goes.</b> Injecting only into the plugin-level
@@ -51,6 +55,7 @@ final class CompilerConfigInjection {
     static final String COMPILER_GROUP_ID = "org.apache.maven.plugins";
     static final String COMPILER_ARTIFACT_ID = "maven-compiler-plugin";
     static final String MAPPER_DIR_ARG_PREFIX = "-Alightbatis.mapperDir=";
+    static final String PARAMETERS_FLAG = "-parameters";
 
     static final String PROCESSOR_GROUP_ID = "io.github.lightbatis";
     static final String PROCESSOR_ARTIFACT_ID = "lightbatis-processor";
@@ -88,8 +93,15 @@ final class CompilerConfigInjection {
      *                             warning, because it switches javac from
      *                             classpath processor discovery to explicit
      *                             paths only
+     * @param parametersDisabledByBuild some node says
+     *                             {@code <parameters>false</parameters>}; that
+     *                             opinion is honoured, and it is worth a
+     *                             warning because it is the configuration under
+     *                             which {@code #{name}} resolves on a clean
+     *                             build and fails on an incremental one
      */
-    record Result(List<String> targets, boolean manualArgFound, boolean processorPathsCreated) {
+    record Result(List<String> targets, boolean manualArgFound, boolean processorPathsCreated,
+                  boolean parametersDisabledByBuild) {
     }
 
     private CompilerConfigInjection() {
@@ -102,11 +114,11 @@ final class CompilerConfigInjection {
      *     there would be inert but visible in {@code help:effective-pom}
      */
     static Result inject(Build build, Path mapperDir, boolean addProcessorPath,
-            boolean createCompilerPlugin) {
+            boolean addParameters, boolean createCompilerPlugin) {
         Plugin compiler = findCompilerPlugin(build);
         if (compiler == null) {
             if (!createCompilerPlugin) {
-                return new Result(List.of(), false, false);
+                return new Result(List.of(), false, false, false);
             }
             compiler = createCompilerPlugin(build);
         }
@@ -114,28 +126,32 @@ final class CompilerConfigInjection {
         List<String> targets = new ArrayList<>();
         boolean manualArgFound = false;
         boolean processorPathsCreated = false;
+        boolean parametersDisabledByBuild = false;
 
         // Read by direct invocations (mvn compiler:compile) only.
-        NodeResult pluginLevel = injectInto(compiler, mapperDir, addProcessorPath);
+        NodeResult pluginLevel = injectInto(compiler, mapperDir, addProcessorPath, addParameters);
         if (pluginLevel.changed()) {
             targets.add("plugin-level");
         }
         manualArgFound |= pluginLevel.manualArgFound();
         processorPathsCreated |= pluginLevel.processorPathsCreated();
+        parametersDisabledByBuild |= pluginLevel.parametersDisabledByBuild();
 
         // Read by every lifecycle-bound compile — the case that matters.
         for (PluginExecution execution : compiler.getExecutions()) {
             if (execution.getGoals().stream().noneMatch(COMPILE_GOALS::contains)) {
                 continue;
             }
-            NodeResult result = injectInto(execution, mapperDir, addProcessorPath);
+            NodeResult result = injectInto(execution, mapperDir, addProcessorPath, addParameters);
             if (result.changed()) {
                 targets.add("execution " + execution.getId());
             }
             manualArgFound |= result.manualArgFound();
             processorPathsCreated |= result.processorPathsCreated();
+            parametersDisabledByBuild |= result.parametersDisabledByBuild();
         }
-        return new Result(List.copyOf(targets), manualArgFound, processorPathsCreated);
+        return new Result(List.copyOf(targets), manualArgFound, processorPathsCreated,
+                parametersDisabledByBuild);
     }
 
     private static Plugin findCompilerPlugin(Build build) {
@@ -160,16 +176,17 @@ final class CompilerConfigInjection {
     }
 
     private record NodeResult(boolean argInjected, boolean manualArgFound,
-                              boolean processorPathInjected, boolean processorPathsCreated) {
+                              boolean processorPathInjected, boolean processorPathsCreated,
+                              boolean parametersInjected, boolean parametersDisabledByBuild) {
 
         boolean changed() {
-            return argInjected || processorPathInjected;
+            return argInjected || processorPathInjected || parametersInjected;
         }
     }
 
     /** Injects into one {@code <configuration>} node, creating it when absent. */
     private static NodeResult injectInto(ConfigurationContainer container, Path mapperDir,
-            boolean addProcessorPath) {
+            boolean addProcessorPath, boolean addParameters) {
         Xpp3Dom configuration = (Xpp3Dom) container.getConfiguration();
         if (configuration == null) {
             configuration = new Xpp3Dom("configuration");
@@ -177,8 +194,13 @@ final class CompilerConfigInjection {
         }
 
         boolean argInjected = injectMapperDirArg(configuration, mapperDir);
+        Parameters parameters = addParameters
+                ? injectParameters(configuration)
+                : Parameters.LEFT_ALONE;
         if (!addProcessorPath) {
-            return new NodeResult(argInjected, !argInjected, false, false);
+            return new NodeResult(argInjected, !argInjected, false, false,
+                    parameters == Parameters.INJECTED,
+                    parameters == Parameters.DISABLED_BY_BUILD);
         }
         boolean processorPathsCreated = false;
         Xpp3Dom paths = configuration.getChild("annotationProcessorPaths");
@@ -188,7 +210,52 @@ final class CompilerConfigInjection {
             processorPathsCreated = true;
         }
         return new NodeResult(argInjected, !argInjected,
-                injectProcessorPath(paths), processorPathsCreated);
+                injectProcessorPath(paths), processorPathsCreated,
+                parameters == Parameters.INJECTED,
+                parameters == Parameters.DISABLED_BY_BUILD);
+    }
+
+    /** What {@link #injectParameters} found, and did about it. */
+    private enum Parameters {
+        INJECTED, ALREADY_ON, DISABLED_BY_BUILD, LEFT_ALONE
+    }
+
+    /**
+     * Turns on parameter names — via {@code maven-compiler-plugin}'s own
+     * {@code <parameters>} switch rather than a {@code -parameters} entry in
+     * {@code <compilerArgs>}, because that is the element a reader of
+     * {@code help:effective-pom} expects to find it in.
+     *
+     * <p>An explicit {@code <parameters>} in the build wins either way, {@code
+     * false} included: overriding it would be this plugin deciding it knows
+     * better about someone else's bytecode. A {@code false} is reported instead,
+     * because it is the setting under which {@code #{name}} resolves on a clean
+     * build and fails on the next incremental one.
+     */
+    private static Parameters injectParameters(Xpp3Dom configuration) {
+        Xpp3Dom declared = configuration.getChild("parameters");
+        if (declared != null) {
+            String value = declared.getValue();
+            return value != null && Boolean.parseBoolean(value.trim())
+                    ? Parameters.ALREADY_ON
+                    : Parameters.DISABLED_BY_BUILD;
+        }
+        if (passesParametersManually(configuration)) {
+            return Parameters.ALREADY_ON;
+        }
+        configuration.addChild(valued("parameters", "true"));
+        return Parameters.INJECTED;
+    }
+
+    /** {@code <compilerArgs><arg>-parameters</arg></compilerArgs>}, or the deprecated singular. */
+    private static boolean passesParametersManually(Xpp3Dom configuration) {
+        Xpp3Dom args = configuration.getChild("compilerArgs");
+        if (args != null && Arrays.stream(args.getChildren())
+                .anyMatch(arg -> PARAMETERS_FLAG.equals(arg.getValue()))) {
+            return true;
+        }
+        Xpp3Dom single = configuration.getChild("compilerArgument");
+        return single != null && PARAMETERS_FLAG.equals(single.getValue());
     }
 
     /** Appends the -A option unless this node already passes it manually. */

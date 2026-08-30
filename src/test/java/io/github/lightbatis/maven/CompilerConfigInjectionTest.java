@@ -20,6 +20,16 @@ class CompilerConfigInjectionTest {
     private static final String EXPECTED_ARG =
             "-Alightbatis.mapperDir=" + MAPPER_DIR;
 
+    /**
+     * The production call with the two arguments every test shares pinned:
+     * the mapper directory, and {@code addParameters} at its default.
+     */
+    private static CompilerConfigInjection.Result inject(Build build, boolean addProcessorPath,
+            boolean createCompilerPlugin) {
+        return CompilerConfigInjection.inject(build, MAPPER_DIR, addProcessorPath, true,
+                createCompilerPlugin);
+    }
+
     // --- what the model actually looks like at extension time -------------------
 
     /**
@@ -35,7 +45,7 @@ class CompilerConfigInjectionTest {
         Build build = buildWithLifecycleExecutions(null);
 
         CompilerConfigInjection.Result result =
-                CompilerConfigInjection.inject(build, MAPPER_DIR, true, true);
+                inject(build, true, true);
 
         assertEquals(List.of("plugin-level", "execution default-compile"), result.targets());
         Xpp3Dom configuration = executionConfiguration(build, "default-compile");
@@ -56,7 +66,7 @@ class CompilerConfigInjectionTest {
     void testCompileIsLeftAlone() {
         Build build = buildWithLifecycleExecutions(null);
 
-        CompilerConfigInjection.inject(build, MAPPER_DIR, true, true);
+        inject(build, true, true);
 
         assertNull(compilerPlugin(build).getExecutions().stream()
                 .filter(execution -> "default-testCompile".equals(execution.getId()))
@@ -71,7 +81,7 @@ class CompilerConfigInjectionTest {
         Build build = new Build();
 
         CompilerConfigInjection.Result result =
-                CompilerConfigInjection.inject(build, MAPPER_DIR, true, false);
+                inject(build, true, false);
 
         assertEquals(List.of(), result.targets());
         assertTrue(build.getPlugins().isEmpty());
@@ -85,12 +95,87 @@ class CompilerConfigInjectionTest {
                 "<configuration><compilerArgs><arg>-parameters</arg></compilerArgs>"
                 + "</configuration>");
 
-        CompilerConfigInjection.inject(build, MAPPER_DIR, true, true);
+        inject(build, true, true);
 
         Xpp3Dom args = executionConfiguration(build, "default-compile").getChild("compilerArgs");
         assertEquals(2, args.getChildCount());
         assertEquals("-parameters", args.getChild(0).getValue());
         assertEquals(EXPECTED_ARG, args.getChild(1).getValue());
+    }
+
+    // --- -parameters ------------------------------------------------------------
+    // Not cosmetic: without parameter names in the class files, an incremental
+    // build that re-runs the processor over unchanged mappers reads arg0.
+
+    @Test
+    void setsParametersWhereTheBuildHasNoOpinion() {
+        Build build = buildWithLifecycleExecutions(null);
+
+        CompilerConfigInjection.Result result = inject(build, true, true);
+
+        assertEquals("true",
+                executionConfiguration(build, "default-compile").getChild("parameters").getValue());
+        assertFalse(result.parametersDisabledByBuild());
+    }
+
+    @Test
+    void leavesAnExplicitParametersTrueAlone() {
+        Build build = buildWithLifecycleExecutions(
+                "<configuration><parameters>true</parameters></configuration>");
+
+        CompilerConfigInjection.Result result = inject(build, true, true);
+
+        Xpp3Dom configuration = executionConfiguration(build, "default-compile");
+        assertEquals(1, childrenNamed(configuration, "parameters"),
+                "a second <parameters> would be ambiguous, not redundant");
+        assertFalse(result.parametersDisabledByBuild());
+    }
+
+    /**
+     * The build's opinion wins even when it is the one that breaks LightBatis —
+     * overriding it would be this plugin deciding it knows better about someone
+     * else's bytecode. It is reported instead, and the participant warns.
+     */
+    @Test
+    void honoursAndReportsParametersFalse() {
+        Build build = buildWithLifecycleExecutions(
+                "<configuration><parameters>false</parameters></configuration>");
+
+        CompilerConfigInjection.Result result = inject(build, true, true);
+
+        assertEquals("false",
+                executionConfiguration(build, "default-compile").getChild("parameters").getValue());
+        assertTrue(result.parametersDisabledByBuild());
+    }
+
+    @Test
+    void doesNotSetParametersWhenTheCompilerArgAlreadyPassesIt() {
+        Build build = buildWithLifecycleExecutions(
+                "<configuration><compilerArgs><arg>-parameters</arg></compilerArgs>"
+                + "</configuration>");
+
+        inject(build, true, true);
+
+        assertNull(executionConfiguration(build, "default-compile").getChild("parameters"));
+    }
+
+    @Test
+    void addParametersOffLeavesTheBuildAlone() {
+        Build build = buildWithLifecycleExecutions(null);
+
+        CompilerConfigInjection.Result result =
+                CompilerConfigInjection.inject(build, MAPPER_DIR, true, false, true);
+
+        assertNull(executionConfiguration(build, "default-compile").getChild("parameters"));
+        assertFalse(result.parametersDisabledByBuild());
+        assertEquals(EXPECTED_ARG, executionConfiguration(build, "default-compile")
+                .getChild("compilerArgs").getChild(0).getValue(),
+                "switching off -parameters must not switch off the mapper directory");
+    }
+
+    private static long childrenNamed(Xpp3Dom node, String name) {
+        return java.util.Arrays.stream(node.getChildren()).filter(c -> name.equals(c.getName()))
+                .count();
     }
 
     @Test
@@ -102,7 +187,7 @@ class CompilerConfigInjectionTest {
         other.addGoal("help");
         compiler.addExecution(other);
 
-        CompilerConfigInjection.inject(build, MAPPER_DIR, true, true);
+        inject(build, true, true);
 
         assertNull(other.getConfiguration());
     }
@@ -111,9 +196,9 @@ class CompilerConfigInjectionTest {
     void injectionIsIdempotent() {
         Build build = buildWithLifecycleExecutions(null);
 
-        CompilerConfigInjection.inject(build, MAPPER_DIR, true, true);
+        inject(build, true, true);
         CompilerConfigInjection.Result second =
-                CompilerConfigInjection.inject(build, MAPPER_DIR, true, true);
+                inject(build, true, true);
 
         assertEquals(List.of(), second.targets());
         assertTrue(second.manualArgFound());
@@ -129,7 +214,7 @@ class CompilerConfigInjectionTest {
         Build build = new Build();
 
         CompilerConfigInjection.Result result =
-                CompilerConfigInjection.inject(build, MAPPER_DIR, true, true);
+                inject(build, true, true);
 
         assertEquals(List.of("plugin-level"), result.targets());
         assertTrue(result.processorPathsCreated());
@@ -153,7 +238,7 @@ class CompilerConfigInjectionTest {
                 + "</compilerArgs></configuration>");
 
         CompilerConfigInjection.Result result =
-                CompilerConfigInjection.inject(build, MAPPER_DIR, true, true);
+                inject(build, true, true);
 
         assertTrue(result.manualArgFound());
         Xpp3Dom args = executionConfiguration(build, "default-compile").getChild("compilerArgs");
@@ -165,7 +250,7 @@ class CompilerConfigInjectionTest {
     void addProcessorPathFalseInjectsOnlyTheArg() {
         Build build = buildWithLifecycleExecutions(null);
 
-        CompilerConfigInjection.inject(build, MAPPER_DIR, false, true);
+        inject(build, false, true);
 
         Xpp3Dom configuration = executionConfiguration(build, "default-compile");
         assertEquals(EXPECTED_ARG,
@@ -183,7 +268,7 @@ class CompilerConfigInjectionTest {
                 + "</path></annotationProcessorPaths></configuration>");
 
         CompilerConfigInjection.Result result =
-                CompilerConfigInjection.inject(build, MAPPER_DIR, true, true);
+                inject(build, true, true);
 
         assertFalse(result.processorPathsCreated());
         Xpp3Dom paths = executionConfiguration(build, "default-compile")
@@ -202,7 +287,7 @@ class CompilerConfigInjectionTest {
                 + "<version>0.2.0</version>"
                 + "</path></annotationProcessorPaths></configuration>");
 
-        CompilerConfigInjection.inject(build, MAPPER_DIR, true, true);
+        inject(build, true, true);
 
         Xpp3Dom paths = executionConfiguration(build, "default-compile")
                 .getChild("annotationProcessorPaths");
@@ -219,7 +304,7 @@ class CompilerConfigInjectionTest {
     void procIsNeverSet() {
         Build build = buildWithLifecycleExecutions(null);
 
-        CompilerConfigInjection.inject(build, MAPPER_DIR, true, true);
+        inject(build, true, true);
 
         assertNull(pluginConfiguration(build).getChild("proc"));
         assertNull(executionConfiguration(build, "default-compile").getChild("proc"));

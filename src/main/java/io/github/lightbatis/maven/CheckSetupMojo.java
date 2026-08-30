@@ -37,6 +37,10 @@ public final class CheckSetupMojo extends AbstractMojo {
     @Parameter(defaultValue = "true")
     private boolean addProcessorPath;
 
+    /** Declared for the same reason as {@link #mapperDir}. */
+    @Parameter(defaultValue = "true")
+    private boolean addParameters;
+
     @Override
     public void execute() throws MojoFailureException {
         String resolved = project.getProperties()
@@ -49,5 +53,6 @@ public final class CheckSetupMojo extends AbstractMojo {
         }
         getLog().info("LightBatis mapper directory: " + resolved);
         getLog().info("LightBatis processor path added automatically: " + addProcessorPath);
+        getLog().info("LightBatis -parameters set automatically: " + addParameters);
     }
 }

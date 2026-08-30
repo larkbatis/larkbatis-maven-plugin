@@ -74,7 +74,7 @@ public final class LightBatisLifecycleParticipant extends AbstractMavenLifecycle
                 .setProperty(MAPPER_DIR_PROPERTY, settings.mapperDir().toString());
         CompilerConfigInjection.Result result = CompilerConfigInjection.inject(
                 project.getBuild(), settings.mapperDir(), settings.addProcessorPath(),
-                !"pom".equals(project.getPackaging()));
+                settings.addParameters(), !"pom".equals(project.getPackaging()));
         bindRefreshGoal(declaration);
 
         logger.info("LightBatis ({}): -Alightbatis.mapperDir={} → {}", project.getArtifactId(),
@@ -86,6 +86,14 @@ public final class LightBatisLifecycleParticipant extends AbstractMavenLifecycle
                     + "from there. Add your other processors (e.g. Lombok) to it, or set "
                     + "<addProcessorPath>false</addProcessorPath> and manage the paths "
                     + "yourself.", project.getArtifactId());
+        }
+        if (result.parametersDisabledByBuild()) {
+            logger.warn("LightBatis ({}): maven-compiler-plugin has "
+                    + "<parameters>false</parameters>, and that has been left alone. Parameter "
+                    + "names will not reach the class files, so an incremental build that "
+                    + "re-runs the processor over unchanged mappers will read arg0 and fail to "
+                    + "resolve #{name}. Remove it, or put @Param on every mapper parameter.",
+                    project.getArtifactId());
         }
     }
 
