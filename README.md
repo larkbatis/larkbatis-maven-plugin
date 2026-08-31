@@ -14,7 +14,7 @@ directory path.
         <plugin>
             <groupId>io.github.larkbatis</groupId>
             <artifactId>larkbatis-maven-plugin</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+            <version>0.1.0</version>
             <extensions>true</extensions> <!-- required, see below -->
         </plugin>
     </plugins>
@@ -24,12 +24,12 @@ directory path.
     <dependency>
         <groupId>io.github.larkbatis</groupId>
         <artifactId>larkbatis-runtime</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <version>0.1.0</version>
     </dependency>
     <dependency>
         <groupId>io.github.larkbatis</groupId>
         <artifactId>larkbatis-annotations</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <version>0.1.0</version>
     </dependency>
     <!-- larkbatis-processor lands on annotationProcessorPaths automatically -->
 </dependencies>
