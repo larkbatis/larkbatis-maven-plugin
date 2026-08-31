@@ -78,7 +78,10 @@ public final class LarkBatisLifecycleParticipant extends AbstractMavenLifecycleP
         project.getProperties().setProperty(MAPPER_DIR_PROPERTY, mapperDirs);
         CompilerConfigInjection.Result result = CompilerConfigInjection.inject(
                 project.getBuild(), settings.mapperDirs(), settings.addProcessorPath(),
-                settings.addParameters(), !"pom".equals(project.getPackaging()));
+                settings.addParameters(), !"pom".equals(project.getPackaging()),
+                settings.mapUnderscoreToCamelCase(), settings.typeHandlers(),
+                settings.registryPackage(), settings.springConfig(),
+                settings.springConfigPackage());
         bindRefreshGoal(declaration);
 
         logger.info("LarkBatis ({}): -Alarkbatis.mapperDir={} → {}", project.getArtifactId(),

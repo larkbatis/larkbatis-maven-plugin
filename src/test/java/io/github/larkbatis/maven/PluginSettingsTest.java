@@ -137,9 +137,91 @@ class PluginSettingsTest {
         assertFalse(settings.addProcessorPath());
     }
 
+    // ── Processor options ────────────────────────────────────────────
+
+    @Test
+    void processorOptionsAreNullByDefault() {
+        PluginSettings settings = PluginSettings.from(new Plugin(), BASEDIR);
+
+        assertEquals(null, settings.mapUnderscoreToCamelCase());
+        assertEquals(null, settings.typeHandlers());
+        assertEquals(null, settings.registryPackage());
+        assertEquals(null, settings.springConfig());
+        assertEquals(null, settings.springConfigPackage());
+    }
+
+    @Test
+    void mapUnderscoreToCamelCaseParsed() {
+        PluginSettings settings = PluginSettings.from(
+                declaration("<configuration>"
+                        + "<mapUnderscoreToCamelCase>false</mapUnderscoreToCamelCase>"
+                        + "</configuration>"),
+                BASEDIR);
+
+        assertEquals("false", settings.mapUnderscoreToCamelCase());
+    }
+
+    @Test
+    void typeHandlersParsed() {
+        PluginSettings settings = PluginSettings.from(
+                declaration("<configuration>"
+                        + "<typeHandlers>com.example.Money:com.example.MoneyHandler</typeHandlers>"
+                        + "</configuration>"),
+                BASEDIR);
+
+        assertEquals("com.example.Money:com.example.MoneyHandler", settings.typeHandlers());
+    }
+
+    @Test
+    void registryPackageParsed() {
+        PluginSettings settings = PluginSettings.from(
+                declaration("<configuration>"
+                        + "<registryPackage>com.example.app</registryPackage>"
+                        + "</configuration>"),
+                BASEDIR);
+
+        assertEquals("com.example.app", settings.registryPackage());
+    }
+
+    @Test
+    void springConfigParsed() {
+        PluginSettings settings = PluginSettings.from(
+                declaration("<configuration>"
+                        + "<springConfig>false</springConfig>"
+                        + "</configuration>"),
+                BASEDIR);
+
+        assertEquals("false", settings.springConfig());
+    }
+
+    @Test
+    void springConfigPackageParsed() {
+        PluginSettings settings = PluginSettings.from(
+                declaration("<configuration>"
+                        + "<springConfigPackage>com.example.config</springConfigPackage>"
+                        + "</configuration>"),
+                BASEDIR);
+
+        assertEquals("com.example.config", settings.springConfigPackage());
+    }
+
+    @Test
+    void blankProcessorOptionsAreNull() {
+        PluginSettings settings = PluginSettings.from(
+                declaration("<configuration>"
+                        + "<mapUnderscoreToCamelCase>  </mapUnderscoreToCamelCase>"
+                        + "<registryPackage></registryPackage>"
+                        + "</configuration>"),
+                BASEDIR);
+
+        assertEquals(null, settings.mapUnderscoreToCamelCase());
+        assertEquals(null, settings.registryPackage());
+    }
+
     private static Plugin declaration(String configurationXml) {
         Plugin plugin = new Plugin();
         plugin.setConfiguration(TestXml.dom(configurationXml));
         return plugin;
     }
 }
+

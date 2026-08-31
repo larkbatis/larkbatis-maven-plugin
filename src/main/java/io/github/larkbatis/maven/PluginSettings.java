@@ -21,6 +21,11 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
  *     </mapperDirs>
  *     <addProcessorPath>false</addProcessorPath>   <!-- default: true -->
  *     <addParameters>false</addParameters>         <!-- default: true -->
+ *     <mapUnderscoreToCamelCase>false</mapUnderscoreToCamelCase>  <!-- default: not set -->
+ *     <typeHandlers>com.example.Money:com.example.MoneyHandler</typeHandlers>
+ *     <registryPackage>com.example.app</registryPackage>
+ *     <springConfig>false</springConfig>
+ *     <springConfigPackage>com.example.config</springConfigPackage>
  * </configuration>
  * }</pre>
  *
@@ -43,8 +48,22 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
  *     incremental build that re-runs the processor over unchanged mappers sees
  *     {@code arg0} and every {@code #{name}} stops resolving. Switch off only
  *     with {@code @Param} on every mapper parameter
+ * @param mapUnderscoreToCamelCase {@code "false"} makes underscores significant
+ *     when a column label is matched to a property. {@code null} when unset —
+ *     the processor applies its own default ({@code true})
+ * @param typeHandlers default type handlers, comma-separated
+ *     {@code javaType:handlerClass} pairs. {@code null} when unset
+ * @param registryPackage package for the generated {@code LarkBatisMappers}
+ *     registry class. {@code null} when unset — the processor picks the common
+ *     package prefix
+ * @param springConfig {@code "false"} suppresses the generated Spring
+ *     {@code @Configuration}. {@code null} when unset
+ * @param springConfigPackage package for the generated Spring
+ *     {@code @Configuration}. {@code null} when unset
  */
-record PluginSettings(List<Path> mapperDirs, boolean addProcessorPath, boolean addParameters) {
+record PluginSettings(List<Path> mapperDirs, boolean addProcessorPath, boolean addParameters,
+        String mapUnderscoreToCamelCase, String typeHandlers, String registryPackage,
+        String springConfig, String springConfigPackage) {
 
     static final String DEFAULT_MAPPER_DIR = "src/main/resources";
 
@@ -77,7 +96,19 @@ record PluginSettings(List<Path> mapperDirs, boolean addProcessorPath, boolean a
                 || Boolean.parseBoolean(addProcessorPathValue.trim());
         boolean addParameters = addParametersValue == null
                 || Boolean.parseBoolean(addParametersValue.trim());
-        return new PluginSettings(List.copyOf(mapperDirs), addProcessorPath, addParameters);
+
+        // Processor options — null when absent, passed through verbatim.
+        String mapUnderscoreToCamelCase = trimmedOrNull(childValue(configuration,
+                "mapUnderscoreToCamelCase"));
+        String typeHandlers = trimmedOrNull(childValue(configuration, "typeHandlers"));
+        String registryPackage = trimmedOrNull(childValue(configuration, "registryPackage"));
+        String springConfig = trimmedOrNull(childValue(configuration, "springConfig"));
+        String springConfigPackage = trimmedOrNull(childValue(configuration,
+                "springConfigPackage"));
+
+        return new PluginSettings(List.copyOf(mapperDirs), addProcessorPath, addParameters,
+                mapUnderscoreToCamelCase, typeHandlers, registryPackage,
+                springConfig, springConfigPackage);
     }
 
     /**
@@ -142,4 +173,13 @@ record PluginSettings(List<Path> mapperDirs, boolean addProcessorPath, boolean a
         }
         return values;
     }
+
+    private static String trimmedOrNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
 }
+

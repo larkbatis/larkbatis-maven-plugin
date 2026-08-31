@@ -28,7 +28,7 @@ class CompilerConfigInjectionTest {
     private static CompilerConfigInjection.Result inject(Build build, boolean addProcessorPath,
             boolean createCompilerPlugin) {
         return CompilerConfigInjection.inject(build, MAPPER_DIRS, addProcessorPath, true,
-                createCompilerPlugin);
+                createCompilerPlugin, null, null, null, null, null);
     }
 
     // --- what the model actually looks like at extension time -------------------
@@ -165,7 +165,8 @@ class CompilerConfigInjectionTest {
         Build build = buildWithLifecycleExecutions(null);
 
         CompilerConfigInjection.Result result =
-                CompilerConfigInjection.inject(build, MAPPER_DIRS, true, false, true);
+                CompilerConfigInjection.inject(build, MAPPER_DIRS, true, false, true,
+                        null, null, null, null, null);
 
         assertNull(executionConfiguration(build, "default-compile").getChild("parameters"));
         assertFalse(result.parametersDisabledByBuild());
@@ -309,6 +310,109 @@ class CompilerConfigInjectionTest {
 
         assertNull(pluginConfiguration(build).getChild("proc"));
         assertNull(executionConfiguration(build, "default-compile").getChild("proc"));
+    }
+
+    // --- processor options -------------------------------------------------------
+
+    @Test
+    void processorOptionsNotInjectedWhenNull() {
+        Build build = buildWithLifecycleExecutions(null);
+
+        inject(build, true, true);
+
+        Xpp3Dom args = executionConfiguration(build, "default-compile").getChild("compilerArgs");
+        for (int i = 0; i < args.getChildCount(); i++) {
+            String value = args.getChild(i).getValue();
+            if (value != null && value.startsWith("-Alarkbatis.")
+                    && !value.startsWith("-Alarkbatis.mapperDir=")) {
+                throw new AssertionError("unexpected processor option: " + value);
+            }
+        }
+    }
+
+    @Test
+    void mapUnderscoreToCamelCaseInjected() {
+        Build build = buildWithLifecycleExecutions(null);
+
+        CompilerConfigInjection.inject(build, MAPPER_DIRS, true, true, true,
+                "false", null, null, null, null);
+
+        assertTrue(hasArg(build, "default-compile",
+                "-Alarkbatis.mapUnderscoreToCamelCase=false"));
+    }
+
+    @Test
+    void typeHandlersInjected() {
+        Build build = buildWithLifecycleExecutions(null);
+
+        CompilerConfigInjection.inject(build, MAPPER_DIRS, true, true, true,
+                null, "com.example.Money:com.example.MoneyHandler", null, null, null);
+
+        assertTrue(hasArg(build, "default-compile",
+                "-Alarkbatis.typeHandlers=com.example.Money:com.example.MoneyHandler"));
+    }
+
+    @Test
+    void registryPackageInjected() {
+        Build build = buildWithLifecycleExecutions(null);
+
+        CompilerConfigInjection.inject(build, MAPPER_DIRS, true, true, true,
+                null, null, "com.example.app", null, null);
+
+        assertTrue(hasArg(build, "default-compile",
+                "-Alarkbatis.registryPackage=com.example.app"));
+    }
+
+    @Test
+    void springConfigInjected() {
+        Build build = buildWithLifecycleExecutions(null);
+
+        CompilerConfigInjection.inject(build, MAPPER_DIRS, true, true, true,
+                null, null, null, "false", null);
+
+        assertTrue(hasArg(build, "default-compile",
+                "-Alarkbatis.springConfig=false"));
+    }
+
+    @Test
+    void springConfigPackageInjected() {
+        Build build = buildWithLifecycleExecutions(null);
+
+        CompilerConfigInjection.inject(build, MAPPER_DIRS, true, true, true,
+                null, null, null, null, "com.example.config");
+
+        assertTrue(hasArg(build, "default-compile",
+                "-Alarkbatis.springConfigPackage=com.example.config"));
+    }
+
+    @Test
+    void manualProcessorOptionIsNotOverridden() {
+        Build build = buildWithLifecycleExecutions(
+                "<configuration><compilerArgs>"
+                + "<arg>-Alarkbatis.mapUnderscoreToCamelCase=true</arg>"
+                + "</compilerArgs></configuration>");
+
+        CompilerConfigInjection.inject(build, MAPPER_DIRS, true, true, true,
+                "false", null, null, null, null);
+
+        // The manual value wins — the plugin does not add a second one.
+        Xpp3Dom args = executionConfiguration(build, "default-compile").getChild("compilerArgs");
+        long count = java.util.Arrays.stream(args.getChildren())
+                .filter(arg -> arg.getValue() != null
+                        && arg.getValue().startsWith("-Alarkbatis.mapUnderscoreToCamelCase="))
+                .count();
+        assertEquals(1, count);
+        assertEquals("-Alarkbatis.mapUnderscoreToCamelCase=true", args.getChild(0).getValue());
+    }
+
+    private static boolean hasArg(Build build, String executionId, String expectedArg) {
+        Xpp3Dom args = executionConfiguration(build, executionId).getChild("compilerArgs");
+        for (int i = 0; i < args.getChildCount(); i++) {
+            if (expectedArg.equals(args.getChild(i).getValue())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // --- fixtures ---------------------------------------------------------------

@@ -58,6 +58,12 @@ final class CompilerConfigInjection {
     static final String MAPPER_DIR_ARG_PREFIX = "-Alarkbatis.mapperDir=";
     static final String PARAMETERS_FLAG = "-parameters";
 
+    private static final String MAP_UNDERSCORE_PREFIX = "-Alarkbatis.mapUnderscoreToCamelCase=";
+    private static final String TYPE_HANDLERS_PREFIX = "-Alarkbatis.typeHandlers=";
+    private static final String REGISTRY_PACKAGE_PREFIX = "-Alarkbatis.registryPackage=";
+    private static final String SPRING_CONFIG_PREFIX = "-Alarkbatis.springConfig=";
+    private static final String SPRING_CONFIG_PACKAGE_PREFIX = "-Alarkbatis.springConfigPackage=";
+
     static final String PROCESSOR_GROUP_ID = "io.github.larkbatis";
     static final String PROCESSOR_ARTIFACT_ID = "larkbatis-processor";
     /**
@@ -115,7 +121,9 @@ final class CompilerConfigInjection {
      *     there would be inert but visible in {@code help:effective-pom}
      */
     static Result inject(Build build, List<Path> mapperDirs, boolean addProcessorPath,
-            boolean addParameters, boolean createCompilerPlugin) {
+            boolean addParameters, boolean createCompilerPlugin,
+            String mapUnderscoreToCamelCase, String typeHandlers, String registryPackage,
+            String springConfig, String springConfigPackage) {
         Plugin compiler = findCompilerPlugin(build);
         if (compiler == null) {
             if (!createCompilerPlugin) {
@@ -130,7 +138,9 @@ final class CompilerConfigInjection {
         boolean parametersDisabledByBuild = false;
 
         // Read by direct invocations (mvn compiler:compile) only.
-        NodeResult pluginLevel = injectInto(compiler, mapperDirs, addProcessorPath, addParameters);
+        NodeResult pluginLevel = injectInto(compiler, mapperDirs, addProcessorPath, addParameters,
+                mapUnderscoreToCamelCase, typeHandlers, registryPackage, springConfig,
+                springConfigPackage);
         if (pluginLevel.changed()) {
             targets.add("plugin-level");
         }
@@ -143,7 +153,9 @@ final class CompilerConfigInjection {
             if (execution.getGoals().stream().noneMatch(COMPILE_GOALS::contains)) {
                 continue;
             }
-            NodeResult result = injectInto(execution, mapperDirs, addProcessorPath, addParameters);
+            NodeResult result = injectInto(execution, mapperDirs, addProcessorPath, addParameters,
+                    mapUnderscoreToCamelCase, typeHandlers, registryPackage, springConfig,
+                    springConfigPackage);
             if (result.changed()) {
                 targets.add("execution " + execution.getId());
             }
@@ -187,7 +199,9 @@ final class CompilerConfigInjection {
 
     /** Injects into one {@code <configuration>} node, creating it when absent. */
     private static NodeResult injectInto(ConfigurationContainer container, List<Path> mapperDirs,
-            boolean addProcessorPath, boolean addParameters) {
+            boolean addProcessorPath, boolean addParameters,
+            String mapUnderscoreToCamelCase, String typeHandlers, String registryPackage,
+            String springConfig, String springConfigPackage) {
         Xpp3Dom configuration = (Xpp3Dom) container.getConfiguration();
         if (configuration == null) {
             configuration = new Xpp3Dom("configuration");
@@ -195,6 +209,11 @@ final class CompilerConfigInjection {
         }
 
         boolean argInjected = injectMapperDirArg(configuration, mapperDirs);
+        injectProcessorOptionArg(configuration, MAP_UNDERSCORE_PREFIX, mapUnderscoreToCamelCase);
+        injectProcessorOptionArg(configuration, TYPE_HANDLERS_PREFIX, typeHandlers);
+        injectProcessorOptionArg(configuration, REGISTRY_PACKAGE_PREFIX, registryPackage);
+        injectProcessorOptionArg(configuration, SPRING_CONFIG_PREFIX, springConfig);
+        injectProcessorOptionArg(configuration, SPRING_CONFIG_PACKAGE_PREFIX, springConfigPackage);
         Parameters parameters = addParameters
                 ? injectParameters(configuration)
                 : Parameters.LEFT_ALONE;
@@ -303,5 +322,30 @@ final class CompilerConfigInjection {
         Xpp3Dom node = new Xpp3Dom(name);
         node.setValue(value);
         return node;
+    }
+
+    /**
+     * Appends a {@code -Alarkbatis.xxx=value} compiler arg when the value is
+     * non-null and the build does not already pass it manually.
+     */
+    private static void injectProcessorOptionArg(Xpp3Dom configuration, String prefix,
+            String value) {
+        if (value == null) {
+            return;
+        }
+        Xpp3Dom args = configuration.getChild("compilerArgs");
+        if (args == null) {
+            args = new Xpp3Dom("compilerArgs");
+            configuration.addChild(args);
+        }
+        boolean alreadyConfigured = Arrays.stream(args.getChildren())
+                .anyMatch(arg -> arg.getValue() != null
+                        && arg.getValue().startsWith(prefix));
+        if (alreadyConfigured) {
+            return;
+        }
+        Xpp3Dom arg = new Xpp3Dom("arg");
+        arg.setValue(prefix + value);
+        args.addChild(arg);
     }
 }
