@@ -16,8 +16,9 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
  * for why this must happen at extension time):
  *
  * <ul>
- *   <li>appends {@code -Alarkbatis.mapperDir=<dir>} to {@code <compilerArgs>}
- *       — skipped where that option is already passed manually,</li>
+ *   <li>appends {@code -Alarkbatis.mapperDir=<dirs>} to {@code <compilerArgs>}
+ *       — one option holding every mapper directory, skipped where that option
+ *       is already passed manually,</li>
  *   <li>appends {@code larkbatis-processor} to
  *       {@code <annotationProcessorPaths>}, creating the element when absent,</li>
  *   <li>sets {@code <parameters>true</parameters>} where the build has no
@@ -113,7 +114,7 @@ final class CompilerConfigInjection {
      *     compiles nothing: an executionless, versionless compiler plugin
      *     there would be inert but visible in {@code help:effective-pom}
      */
-    static Result inject(Build build, Path mapperDir, boolean addProcessorPath,
+    static Result inject(Build build, List<Path> mapperDirs, boolean addProcessorPath,
             boolean addParameters, boolean createCompilerPlugin) {
         Plugin compiler = findCompilerPlugin(build);
         if (compiler == null) {
@@ -129,7 +130,7 @@ final class CompilerConfigInjection {
         boolean parametersDisabledByBuild = false;
 
         // Read by direct invocations (mvn compiler:compile) only.
-        NodeResult pluginLevel = injectInto(compiler, mapperDir, addProcessorPath, addParameters);
+        NodeResult pluginLevel = injectInto(compiler, mapperDirs, addProcessorPath, addParameters);
         if (pluginLevel.changed()) {
             targets.add("plugin-level");
         }
@@ -142,7 +143,7 @@ final class CompilerConfigInjection {
             if (execution.getGoals().stream().noneMatch(COMPILE_GOALS::contains)) {
                 continue;
             }
-            NodeResult result = injectInto(execution, mapperDir, addProcessorPath, addParameters);
+            NodeResult result = injectInto(execution, mapperDirs, addProcessorPath, addParameters);
             if (result.changed()) {
                 targets.add("execution " + execution.getId());
             }
@@ -185,7 +186,7 @@ final class CompilerConfigInjection {
     }
 
     /** Injects into one {@code <configuration>} node, creating it when absent. */
-    private static NodeResult injectInto(ConfigurationContainer container, Path mapperDir,
+    private static NodeResult injectInto(ConfigurationContainer container, List<Path> mapperDirs,
             boolean addProcessorPath, boolean addParameters) {
         Xpp3Dom configuration = (Xpp3Dom) container.getConfiguration();
         if (configuration == null) {
@@ -193,7 +194,7 @@ final class CompilerConfigInjection {
             container.setConfiguration(configuration);
         }
 
-        boolean argInjected = injectMapperDirArg(configuration, mapperDir);
+        boolean argInjected = injectMapperDirArg(configuration, mapperDirs);
         Parameters parameters = addParameters
                 ? injectParameters(configuration)
                 : Parameters.LEFT_ALONE;
@@ -259,7 +260,7 @@ final class CompilerConfigInjection {
     }
 
     /** Appends the -A option unless this node already passes it manually. */
-    private static boolean injectMapperDirArg(Xpp3Dom configuration, Path mapperDir) {
+    private static boolean injectMapperDirArg(Xpp3Dom configuration, List<Path> mapperDirs) {
         Xpp3Dom args = configuration.getChild("compilerArgs");
         if (args == null) {
             args = new Xpp3Dom("compilerArgs");
@@ -272,7 +273,7 @@ final class CompilerConfigInjection {
             return false;
         }
         Xpp3Dom arg = new Xpp3Dom("arg");
-        arg.setValue(MAPPER_DIR_ARG_PREFIX + mapperDir);
+        arg.setValue(MAPPER_DIR_ARG_PREFIX + PluginSettings.join(mapperDirs));
         args.addChild(arg);
         return true;
     }

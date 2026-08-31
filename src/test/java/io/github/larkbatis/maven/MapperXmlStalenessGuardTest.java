@@ -154,10 +154,43 @@ class MapperXmlStalenessGuardTest {
         assertEquals(List.of(), refresh().touched());
     }
 
+    /**
+     * Two mapper directories, and the same relative path under each. Keying
+     * the state by that relative path would let one file's hash answer for the
+     * other: edit the second mapper and the guard reads the first one's entry,
+     * finds no change, and the build ships a stale {@code $$Impl}.
+     */
+    @Test
+    void tracksTwoDirectoriesHoldingTheSameRelativePath() throws IOException {
+        Path second = Files.createDirectories(projectDir.resolve("src/main/mappers"));
+        Path orderXml = write(second.resolve("com/example/UserMapper.xml"),
+                MAPPER_XML.replace("com.example.UserMapper", "com.example.OrderMapper")
+                        .replace("users", "orders"));
+        Path orderSource = write(sourceRoot.resolve("com/example/OrderMapper.java"),
+                "package com.example; public interface OrderMapper {}");
+        write(outputDirectory.resolve("com/example/OrderMapper.class"), "not real bytecode");
+
+        assertEquals(List.of(interfaceSource, orderSource), refresh(mapperDir, second).touched());
+        assertEquals(List.of(), refresh(mapperDir, second).touched());
+
+        Files.writeString(orderXml, Files.readString(orderXml).replace("id, name", "id"));
+        assertEquals(List.of(orderSource), refresh(mapperDir, second).touched());
+    }
+
+    /**
+     * One unreadable directory must not stop the others: the mappers under
+     * them are what the next compile depends on.
+     */
+    @Test
+    void aMissingDirectoryInTheListDoesNotStopTheRest() {
+        assertEquals(List.of(interfaceSource),
+                refresh(projectDir.resolve("does/not/exist"), mapperDir).touched());
+    }
+
     @Test
     void missingMapperDirIsFine() {
         MapperXmlStalenessGuard.Result result = MapperXmlStalenessGuard.refresh(
-                projectDir.resolve("does/not/exist"),
+                List.of(projectDir.resolve("does/not/exist")),
                 List.of(sourceRoot.toString()), outputDirectory, stateFile);
 
         assertEquals(List.of(), result.touched());
@@ -196,9 +229,10 @@ class MapperXmlStalenessGuardTest {
         }
     }
 
-    private MapperXmlStalenessGuard.Result refresh() {
+    private MapperXmlStalenessGuard.Result refresh(Path... mapperDirs) {
         return MapperXmlStalenessGuard.refresh(
-                mapperDir, List.of(sourceRoot.toString()), outputDirectory, stateFile);
+                mapperDirs.length == 0 ? List.of(mapperDir) : List.of(mapperDirs),
+                List.of(sourceRoot.toString()), outputDirectory, stateFile);
     }
 
     private static Path write(Path file, String content) throws IOException {

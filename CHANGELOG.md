@@ -12,6 +12,34 @@ section here does not get released.
 
 ### Added
 
+- **Mapper XML can live in more than one directory**, through a new
+  `<mapperDirs>` list:
+
+  ```xml
+  <configuration>
+    <mapperDirs>
+      <mapperDir>src/main/mappers</mapperDir>
+      <mapperDir>src/main/legacy-mappers</mapperDir>
+    </mapperDirs>
+  </configuration>
+  ```
+
+  Every directory is scanned recursively, and all of them reach javac in one
+  `-Alarkbatis.mapperDir` option — a repeated `-A` of the same name is the last
+  one javac reads, not the union. `larkbatis:refresh` watches all of them, and
+  its state file is now keyed by absolute path: two directories can hold the
+  same relative path, and a shared key would let one file's hash answer for the
+  other's.
+
+  `<mapperDir>` still takes a single directory and is scanned first. The
+  `src/main/resources` default now applies only when the build names neither.
+  A directory reached through both settings is scanned once, because scanning it
+  twice makes the processor report every namespace in it as declared by two
+  files.
+
+  `mvn larkbatis:check` prints every resolved directory and marks any that does
+  not exist.
+
 - **`<parameters>true</parameters>` is set on `maven-compiler-plugin`**,
   controlled by `<addParameters>` (default true). This was the one wiring step
   the first real migration still had to do by hand, and it is not a

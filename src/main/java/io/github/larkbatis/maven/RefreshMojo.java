@@ -37,18 +37,18 @@ public final class RefreshMojo extends AbstractMojo {
         // Read straight off the project rather than through a
         // ${larkbatis.mapperDir} parameter default: expression evaluation
         // prefers session/user properties, so `mvn -Dlarkbatis.mapperDir=…`
-        // would scan one directory while javac was handed another.
-        String mapperDir = project.getProperties()
+        // would scan one set of directories while javac was handed another.
+        String mapperDirs = project.getProperties()
                 .getProperty(LarkBatisLifecycleParticipant.MAPPER_DIR_PROPERTY);
-        if (mapperDir == null) {
+        if (mapperDirs == null) {
             // Only reachable if someone binds this goal by hand without the
             // build extension; CheckSetupMojo explains that case properly.
-            getLog().warn("LarkBatis: no mapper directory resolved — is "
+            getLog().warn("LarkBatis: no mapper directories resolved — is "
                     + "<extensions>true</extensions> missing from the plugin declaration?");
             return;
         }
         MapperXmlStalenessGuard.Result result = MapperXmlStalenessGuard.refresh(
-                Path.of(mapperDir),
+                PluginSettings.split(mapperDirs),
                 project.getCompileSourceRoots(),
                 Path.of(project.getBuild().getOutputDirectory()),
                 stateFile.toPath());

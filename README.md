@@ -43,8 +43,8 @@ runs, so a mojo in an early phase cannot add compiler arguments to the
 (`AbstractMavenLifecycleParticipant`), which runs before execution plans are
 calculated and, for each project declaring the plugin:
 
-- injects `-Alarkbatis.mapperDir=<dir>` into `maven-compiler-plugin`'s
-  `<compilerArgs>` (default dir: `src/main/resources`; only files with a
+- injects `-Alarkbatis.mapperDir=<dirs>` into `maven-compiler-plugin`'s
+  `<compilerArgs>` (default: `src/main/resources`; only files with a
   `<mapper>` root element are read, so other XML in the same tree is ignored;
   skipped where that option is already passed manually),
 - appends `io.github.larkbatis:larkbatis-processor` to
@@ -58,7 +58,8 @@ calculated and, for each project declaring the plugin:
   in `target/larkbatis/mapper-xml.properties`), not timestamps, so neither a
   future-dated file nor a coarse filesystem clock can mislead it. The goal is
   best-effort: IO problems become warnings, never a failed build,
-- sets the `larkbatis.mapperDir` project property.
+- sets the `larkbatis.mapperDir` project property, holding every resolved
+  directory.
 
 Both injections target **every `compile`-bound execution** of the compiler
 plugin, not just its plugin-level `<configuration>`. Maven copies plugin-level
@@ -83,6 +84,44 @@ Configuration (all optional):
 
 All code generation stays inside javac; the plugin generates nothing itself
 and adds nothing to the application's runtime classpath.
+
+### Mapper XML in more than one directory
+
+`<mapperDirs>` takes as many as the module has — rewritten mappers kept beside
+the legacy ones, or generated mapper XML under `target/`:
+
+```xml
+<configuration>
+    <mapperDirs>
+        <mapperDir>src/main/mappers</mapperDir>
+        <mapperDir>src/main/legacy-mappers</mapperDir>
+    </mapperDirs>
+</configuration>
+```
+
+Each is scanned recursively and all of them reach javac in a single
+`-Alarkbatis.mapperDir` option; a second `-A` of the same name would be the
+last one javac reads, not the union. `larkbatis:refresh` watches every
+directory, so an XML-only edit in any of them still recompiles its mapper
+interface.
+
+`<mapperDir>` and `<mapperDirs>` can both be set — the singular one is scanned
+first — and a directory named through both is scanned once. The
+`src/main/resources` default applies only when the build names neither, so
+listing mapper trees does not quietly add a resources directory nobody
+mentioned. Relative paths resolve against the project basedir.
+
+Two directories declaring the same mapper namespace is a compile error rather
+than a last-one-wins merge: the two files disagree about one mapper and
+nothing in the build can say which was meant.
+
+The directories may sit anywhere, but every namespace found still has to name
+a mapper interface compiled in *this* module — a file that matches none is
+reported and ignored, so pointing at another module's mapper tree buys nothing.
+
+`mvn larkbatis:check` prints every resolved directory and flags any that does
+not exist — a mistyped one in a list generates nothing and would otherwise say
+nothing.
 
 ### Why `<parameters>true</parameters>`
 

@@ -38,6 +38,28 @@ class LarkBatisLifecycleParticipantTest {
                 args.getChild(0).getValue());
     }
 
+    /**
+     * Several directories reach javac as one option and later goals as one
+     * property, both path-separator separated — a second {@code -A} option of
+     * the same name would be the last one javac reads, not the union.
+     */
+    @Test
+    void passesEveryMapperDirectoryInOneOption() {
+        MavenProject project = project(true,
+                "<configuration><mapperDir>mappers</mapperDir>"
+                        + "<mapperDirs><mapperDir>legacy-mappers</mapperDir></mapperDirs>"
+                        + "</configuration>");
+
+        participant.configure(project);
+
+        String expected = projectDir.resolve("mappers") + java.io.File.pathSeparator
+                + projectDir.resolve("legacy-mappers");
+        assertEquals(expected, project.getProperties().getProperty("larkbatis.mapperDir"));
+        Xpp3Dom args = compileExecutionConfiguration(project).getChild("compilerArgs");
+        assertEquals(1, args.getChildCount());
+        assertEquals("-Alarkbatis.mapperDir=" + expected, args.getChild(0).getValue());
+    }
+
     @Test
     void bindsTheRefreshGoal() {
         MavenProject project = project(true, null);

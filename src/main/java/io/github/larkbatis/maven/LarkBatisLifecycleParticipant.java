@@ -23,7 +23,8 @@ import org.slf4j.LoggerFactory;
  *       {@code larkbatis-processor} annotation processor path into every
  *       compile-bound execution of {@code maven-compiler-plugin}
  *       ({@link CompilerConfigInjection}),</li>
- *   <li>sets the {@code larkbatis.mapperDir} project property, which
+ *   <li>sets the {@code larkbatis.mapperDir} project property — every
+ *       resolved directory, path-separator separated — which
  *       {@link RefreshMojo} reads and {@code larkbatis:check} looks for to
  *       diagnose a missing {@code <extensions>true</extensions>},</li>
  *   <li>binds {@link RefreshMojo}, which touches mapper interface sources
@@ -38,7 +39,10 @@ import org.slf4j.LoggerFactory;
  */
 public final class LarkBatisLifecycleParticipant extends AbstractMavenLifecycleParticipant {
 
-    /** Property announcing the resolved mapper directory to later goals. */
+    /**
+     * Property announcing the resolved mapper directories to later goals,
+     * path-separator separated in the order they are scanned.
+     */
     static final String MAPPER_DIR_PROPERTY = "larkbatis.mapperDir";
 
     static final String REFRESH_EXECUTION_ID = "larkbatis-refresh";
@@ -70,15 +74,15 @@ public final class LarkBatisLifecycleParticipant extends AbstractMavenLifecycleP
 
         // Idempotent: two plugin versions in one reactor both reach this, and
         // every step below is a no-op once its result is already in the model.
-        project.getProperties()
-                .setProperty(MAPPER_DIR_PROPERTY, settings.mapperDir().toString());
+        String mapperDirs = PluginSettings.join(settings.mapperDirs());
+        project.getProperties().setProperty(MAPPER_DIR_PROPERTY, mapperDirs);
         CompilerConfigInjection.Result result = CompilerConfigInjection.inject(
-                project.getBuild(), settings.mapperDir(), settings.addProcessorPath(),
+                project.getBuild(), settings.mapperDirs(), settings.addProcessorPath(),
                 settings.addParameters(), !"pom".equals(project.getPackaging()));
         bindRefreshGoal(declaration);
 
         logger.info("LarkBatis ({}): -Alarkbatis.mapperDir={} → {}", project.getArtifactId(),
-                settings.mapperDir(),
+                mapperDirs,
                 describe(result));
         if (result.processorPathsCreated()) {
             logger.warn("LarkBatis ({}): created <annotationProcessorPaths> on "

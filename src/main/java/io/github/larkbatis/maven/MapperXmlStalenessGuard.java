@@ -52,16 +52,16 @@ final class MapperXmlStalenessGuard {
     record Result(List<Path> touched, List<String> warnings) {
     }
 
-    private final Path mapperDir;
+    private final List<Path> mapperDirs;
     private final List<String> compileSourceRoots;
     private final Path outputDirectory;
     private final Path stateFile;
     private final List<Path> touched = new ArrayList<>();
     private final List<String> warnings = new ArrayList<>();
 
-    private MapperXmlStalenessGuard(Path mapperDir, List<String> compileSourceRoots,
+    private MapperXmlStalenessGuard(List<Path> mapperDirs, List<String> compileSourceRoots,
             Path outputDirectory, Path stateFile) {
-        this.mapperDir = mapperDir;
+        this.mapperDirs = mapperDirs;
         this.compileSourceRoots = compileSourceRoots;
         this.outputDirectory = outputDirectory;
         this.stateFile = stateFile;
@@ -75,25 +75,35 @@ final class MapperXmlStalenessGuard {
      *                  {@code target/}: removed by {@code mvn clean}, which is
      *                  harmless because a clean build recompiles anyway
      */
-    static Result refresh(Path mapperDir, List<String> compileSourceRoots,
+    static Result refresh(List<Path> mapperDirs, List<String> compileSourceRoots,
             Path outputDirectory, Path stateFile) {
         MapperXmlStalenessGuard guard = new MapperXmlStalenessGuard(
-                mapperDir, compileSourceRoots, outputDirectory, stateFile);
+                mapperDirs, compileSourceRoots, outputDirectory, stateFile);
         guard.run();
         return new Result(List.copyOf(guard.touched), List.copyOf(guard.warnings));
     }
 
     private void run() {
-        if (!Files.isDirectory(mapperDir)) {
-            return;
+        List<Path> xmlFiles = new ArrayList<>();
+        boolean anyDirectoryScanned = false;
+        for (Path mapperDir : mapperDirs) {
+            if (!Files.isDirectory(mapperDir)) {
+                continue;
+            }
+            anyDirectoryScanned = true;
+            try (Stream<Path> walk = Files.walk(mapperDir)) {
+                walk.filter(path -> path.getFileName().toString().endsWith(".xml"))
+                        .sorted()
+                        .forEach(xmlFiles::add);
+            } catch (IOException | UncheckedIOException e) {
+                // One unreadable directory must not stop the others: the
+                // mappers under them are what the next compile depends on.
+                warnings.add("could not scan " + mapperDir + " (" + e + ")");
+            }
         }
-        List<Path> xmlFiles;
-        try (Stream<Path> walk = Files.walk(mapperDir)) {
-            xmlFiles = walk.filter(path -> path.getFileName().toString().endsWith(".xml"))
-                    .sorted()
-                    .toList();
-        } catch (IOException | UncheckedIOException e) {
-            warnings.add("could not scan " + mapperDir + " (" + e + ")");
+        // An existing but empty directory still runs the pass below, which is
+        // what notices that every mapper XML was deleted.
+        if (!anyDirectoryScanned) {
             return;
         }
 
@@ -111,7 +121,10 @@ final class MapperXmlStalenessGuard {
             if (namespace == null) {
                 continue; // not a mapper file; the processor owns those diagnostics
             }
-            String key = mapperDir.relativize(xml).toString().replace('\\', '/');
+            // Keyed by absolute path: two mapper directories can hold the
+            // same relative path, and a shared key would make each build read
+            // the other file's hash and touch an interface that never changed.
+            String key = xml.toAbsolutePath().normalize().toString().replace('\\', '/');
             String entry = namespace + ' ' + sha256(content);
             String previousEntry = previous.remove(key) instanceof String s ? s : null;
             if (entry.equals(previousEntry)) {

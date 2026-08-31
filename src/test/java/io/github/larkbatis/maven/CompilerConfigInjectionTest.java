@@ -16,9 +16,10 @@ import org.junit.jupiter.api.Test;
 
 class CompilerConfigInjectionTest {
 
-    private static final Path MAPPER_DIR = Path.of("/project/src/main/resources");
+    private static final List<Path> MAPPER_DIRS =
+            List.of(Path.of("/project/src/main/resources"));
     private static final String EXPECTED_ARG =
-            "-Alarkbatis.mapperDir=" + MAPPER_DIR;
+            "-Alarkbatis.mapperDir=" + MAPPER_DIRS.get(0);
 
     /**
      * The production call with the two arguments every test shares pinned:
@@ -26,7 +27,7 @@ class CompilerConfigInjectionTest {
      */
     private static CompilerConfigInjection.Result inject(Build build, boolean addProcessorPath,
             boolean createCompilerPlugin) {
-        return CompilerConfigInjection.inject(build, MAPPER_DIR, addProcessorPath, true,
+        return CompilerConfigInjection.inject(build, MAPPER_DIRS, addProcessorPath, true,
                 createCompilerPlugin);
     }
 
@@ -164,7 +165,7 @@ class CompilerConfigInjectionTest {
         Build build = buildWithLifecycleExecutions(null);
 
         CompilerConfigInjection.Result result =
-                CompilerConfigInjection.inject(build, MAPPER_DIR, true, false, true);
+                CompilerConfigInjection.inject(build, MAPPER_DIRS, true, false, true);
 
         assertNull(executionConfiguration(build, "default-compile").getChild("parameters"));
         assertFalse(result.parametersDisabledByBuild());
