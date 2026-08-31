@@ -8,7 +8,7 @@ The release workflow reads the section for the version being tagged out of this
 file and uses it verbatim as the GitHub Release body, so a version with no
 section here does not get released.
 
-## [0.1.1] - 2026-08-31
+## [0.1.2] - 2026-08-31
 
 ### Added
 
