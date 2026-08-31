@@ -8,9 +8,15 @@ The release workflow reads the section for the version being tagged out of this
 file and uses it verbatim as the GitHub Release body, so a version with no
 section here does not get released.
 
-## [Unreleased]
+## [0.1.1] - 2026-08-31
 
 ### Added
+
+- **Expose 5 processor options directly in `<configuration>`**:
+  `<mapUnderscoreToCamelCase>`, `<typeHandlers>`, `<registryPackage>`,
+  `<springConfig>`, and `<springConfigPackage>` can now be configured directly
+  instead of passing `-A` compiler arguments manually. The plugin will skip any
+  unset options, letting the processor apply its own defaults.
 
 - **Mapper XML can live in more than one directory**, through a new
   `<mapperDirs>` list:
